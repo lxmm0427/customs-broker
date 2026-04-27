@@ -1,0 +1,20 @@
+{
+  "name": "customs-broker",
+  "version": "1.0.0",
+  "description": "Camunda 8 customs broker process demo",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx ts-node ./source/index.ts",
+    "build": "npx tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@camunda8/sdk": "^8.7.30"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

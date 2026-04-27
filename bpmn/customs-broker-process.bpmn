@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_customs" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.44.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <bpmn:message id="Message_orderInfo" name="order-info-to-cb" />
+  <bpmn:message id="Message_inspectionOrder" name="inspection-order">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=orderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:message id="Message_customsClearance" name="clearance-to-broker">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=orderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:collaboration id="Collaboration_customs">
+    <bpmn:participant id="Participant_customs" name="Customs Broker" processRef="customs-broker-process" />
+  </bpmn:collaboration>
+  <bpmn:process id="customs-broker-process" name="Customs Broker Process" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_CustomsBroker">
+        <bpmn:flowNodeRef>StartEvent_orderInfo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_declareToCustoms</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_inspectionOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_appointInspection</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_customsClearance</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_orderInfo" name="order info&#10;received">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_orderInfo" messageRef="Message_orderInfo" />
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_declareToCustoms" name="declare to Customs">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="declare-to-customs" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:intermediateCatchEvent id="Event_inspectionOrder" name="declare success received">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_inspectionOrder" messageRef="Message_inspectionOrder" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:serviceTask id="Task_appointInspection" name="Appoint for Inspection">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="appoint-for-inspection" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:intermediateCatchEvent id="Event_customsClearance" name="Customs Cearance&#10;received">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_customsClearance" messageRef="Message_customsClearance" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_orderInfo" targetRef="Task_declareToCustoms" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_declareToCustoms" targetRef="Event_inspectionOrder" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Event_inspectionOrder" targetRef="Task_appointInspection" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_appointInspection" targetRef="Event_customsClearance" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Event_customsClearance" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_customs">
+      <bpmndi:BPMNShape id="Participant_customs_di" bpmnElement="Participant_customs" isHorizontal="true">
+        <dc:Bounds x="125" y="60" width="780" height="160" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_CustomsBroker_di" bpmnElement="Lane_CustomsBroker" isHorizontal="true">
+        <dc:Bounds x="155" y="60" width="750" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_orderInfo_di" bpmnElement="StartEvent_orderInfo">
+        <dc:Bounds x="227" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="222" y="165" width="47" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_declareToCustoms_di" bpmnElement="Task_declareToCustoms">
+        <dc:Bounds x="315" y="100" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_inspectionOrder_di" bpmnElement="Event_inspectionOrder">
+        <dc:Bounds x="477" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="456" y="165" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_appointInspection_di" bpmnElement="Task_appointInspection">
+        <dc:Bounds x="575" y="100" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_customsClearance_di" bpmnElement="Event_customsClearance">
+        <dc:Bounds x="737" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="732" y="165" width="48" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="837" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="830" y="165" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="263" y="140" />
+        <di:waypoint x="315" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="415" y="140" />
+        <di:waypoint x="477" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="513" y="140" />
+        <di:waypoint x="575" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="675" y="140" />
+        <di:waypoint x="737" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="773" y="140" />
+        <di:waypoint x="837" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
