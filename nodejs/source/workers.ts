@@ -1,6 +1,7 @@
 import { CamundaRestClient, Dto } from '@camunda8/sdk'
 import { correlateMessage, publishMessage } from './http'
-import { JOB_TYPES, MESSAGE_NAMES, SENDER_ID } from './config'
+import { JOB_TYPES, MESSAGE_NAMES, RABBITMQ_OUT_QUEUES, SENDER_ID, USE_HTTP, USE_RABBITMQ } from './config'
+import { publishToQueue } from './rabbitmq'
 
 // ── 流程变量类型 ─────────────────────────────────────────────────────────────
 
@@ -125,11 +126,16 @@ export function startWorkers(client: CamundaRestClient) {
         cargoDescription:     cargoName   // 字段名映射：cargoName → cargoDescription
       }
 
-      await publishMessage({
-        name:           MESSAGE_NAMES.declarationSubmitted,
-        correlationKey: orderId,
-        variables:      declarationMessage
-      })
+      if (USE_HTTP) {
+        await publishMessage({
+          name:           MESSAGE_NAMES.declarationSubmitted,
+          correlationKey: orderId,
+          variables:      declarationMessage
+        })
+      }
+      if (USE_RABBITMQ) {
+        publishToQueue(RABBITMQ_OUT_QUEUES.declarationSubmitted, declarationMessage)
+      }
 
       log.info(`[declare-to-customs] published declaration-submitted`)
       log.info(` `)
@@ -184,11 +190,16 @@ export function startWorkers(client: CamundaRestClient) {
       if (job.variables.contactPerson) appointmentMessage.contactPerson = job.variables.contactPerson
       if (job.variables.contactPhone)  appointmentMessage.contactPhone  = job.variables.contactPhone
 
-      await publishMessage({
-        name:           MESSAGE_NAMES.inspectionAppointment,
-        correlationKey: orderId,
-        variables:      appointmentMessage
-      })
+      if (USE_HTTP) {
+        await publishMessage({
+          name:           MESSAGE_NAMES.inspectionAppointment,
+          correlationKey: orderId,
+          variables:      appointmentMessage
+        })
+      }
+      if (USE_RABBITMQ) {
+        publishToQueue(RABBITMQ_OUT_QUEUES.inspectionAppointment, appointmentMessage)
+      }
 
       log.info(`[appoint-for-inspection] published inspection-appointment`)
       log.info(` `)

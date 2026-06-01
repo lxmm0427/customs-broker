@@ -12,9 +12,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@camunda8/sdk": "^8.7.30"
+    "@camunda8/sdk": "^8.7.30",
+    "amqplib": "^2.0.1"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.8",
     "typescript": "^5.8.3"
   }
 }
