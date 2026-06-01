@@ -41,9 +41,10 @@ customs-broker/
     ├── package.json
     ├── tsconfig.json
     └── source/
-        ├── index.ts                   # 入口：创建客户端，启动 Workers
-        ├── config.ts                  # 常量：REST 地址、Job Type、消息名称
+        ├── index.ts                   # 入口：创建客户端，启动 Workers 和消息消费者
+        ├── config.ts                  # 常量：REST 地址、Job Type、消息名称、Transport 配置
         ├── http.ts                    # 封装 Camunda REST correlate / publication API
+        ├── rabbitmq.ts                # RabbitMQ 连接、入站消费者、出站发布
         └── workers.ts                 # Worker 实现 + 消息发送辅助函数
 ```
 
@@ -206,6 +207,33 @@ customs-broker/
 | `clearanceStatus` | string | `clearance-to-broker` | 放行状态（APPROVED / REJECTED） |
 | `clearanceTime` | string (ISO) | `clearance-to-broker` | 放行时间 |
 
+## 消息传输
+
+系统支持三种传输模式，通过环境变量 `TRANSPORT` 控制：
+
+| 模式 | 入站（外部 → 报关行） | 出站（报关行 → 外部） | 说明 |
+|------|----------------------|----------------------|------|
+| `http`（仅 HTTP） | 调用方直接请求 Camunda REST API | Worker 通过 Camunda REST 发布 | 无需 RabbitMQ |
+| `rabbitmq`（仅 MQ） | 消费 RabbitMQ 队列，转发给 Camunda | Worker 发布到 RabbitMQ 队列 | 跳过直接 REST 出站调用 |
+| `both`（默认） | 同上 MQ 消费 | Worker 同时发布到 Camunda REST 和 RabbitMQ | 两路并行 |
+
+### RabbitMQ 队列
+
+**入站队列**（外部系统发布，报关行消费后转发给 Camunda）
+
+| 队列名 | 发送方 | 用途 |
+|--------|--------|------|
+| `order-info-to-cb` | 货代 | 触发流程 Start Event |
+| `inspection-order` | 海关 | 唤醒查验指令 Catch Event |
+| `clearance-to-broker` | 海关 | 唤醒放行证书 Catch Event |
+
+**出站队列**（报关行 Worker 执行后发布，外部系统消费）
+
+| 队列名 | 触发时机 |
+|--------|----------|
+| `declaration-submitted` | `declare-to-customs` Worker 完成时 |
+| `inspection-appointment` | `appoint-for-inspection` Worker 完成时 |
+
 ## 快速开始
 
 ### 1. 安装依赖
@@ -222,7 +250,17 @@ npm install
 ### 3. 启动 Workers
 
 ```bash
+# 默认：同时使用 HTTP 和 RabbitMQ（需要 RabbitMQ 运行在 localhost:5672）
 npm start
+
+# 仅使用 HTTP（无需 RabbitMQ）
+TRANSPORT=http npm start
+
+# 仅使用 RabbitMQ
+TRANSPORT=rabbitmq npm start
+
+# 自定义 RabbitMQ 地址
+RABBITMQ_URL=amqp://user:pass@host:5672 npm start
 ```
 
 ### 4. 触发完整流程（示例）
@@ -272,10 +310,10 @@ await publishCustomsClearanceMessage(orderId, {
 
 ## 配置
 
-连接参数在 [nodejs/source/config.ts](nodejs/source/config.ts) 中定义：
+连接参数在 [nodejs/source/config.ts](nodejs/source/config.ts) 中定义，均可通过环境变量覆盖：
 
-```typescript
-export const CAMUNDA_AUTH_STRATEGY = 'NONE'              // 本地无认证模式
-export const CAMUNDA_REST_ADDRESS  = 'http://localhost:8080'
-export const SENDER_ID             = 'CUB' // 报关行标识
-```
+| 环境变量 | 默认值 | 说明 |
+|----------|--------|------|
+| `TRANSPORT` | `both` | 传输模式：`http` / `rabbitmq` / `both` |
+| `RABBITMQ_URL` | `amqp://localhost:5672` | RabbitMQ 连接地址 |
+| — | `http://localhost:8080` | Camunda REST 地址（在 config.ts 中修改） |
